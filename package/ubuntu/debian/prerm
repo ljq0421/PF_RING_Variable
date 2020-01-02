@@ -1,0 +1,37 @@
+#! /bin/sh
+
+case "$1" in
+  upgrade)
+    #
+  ;;
+  *)
+    if [ -f /.dockerenv ]; then exit 0; fi
+    echo "Stopping pf_ring.."
+    if hash systemctl 2>/dev/null; then
+      if hash deb-systemd-invoke 2>/dev/null; then
+        deb-systemd-invoke stop pf_ring
+        deb-systemd-invoke disable pf_ring
+        deb-systemd-invoke stop cluster
+        deb-systemd-invoke disable cluster
+        deb-systemd-invoke stop 'cluster@*'
+        # Note: disable doesn't require * after @
+        deb-systemd-invoke disable 'cluster@'
+      else
+        systemctl stop pf_ring
+        systemctl disable pf_ring
+        systemctl stop cluster
+        systemctl disable cluster
+        systemctl stop 'cluster@*' --all
+        # Note: disable doesn't require * after @
+        systemctl disable 'cluster@' --all
+      fi
+      systemctl daemon-reload
+      systemctl reset-failed
+    else
+      /etc/init.d/pf_ring stop
+      /etc/init.d/cluster stop
+    fi
+  ;;
+esac
+
+exit 0
